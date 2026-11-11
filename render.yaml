@@ -1,0 +1,16 @@
+# Render "Blueprint": New + > Blueprint > pick your GitHub repo.
+# Free plan: the database resets whenever the service restarts or redeploys (fine for a demo).
+services:
+  - type: web
+    name: aquamega
+    runtime: node
+    plan: free
+    buildCommand: echo "no dependencies to install"
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_PASSCODE
+        sync: false      # you type the value in the Render dashboard

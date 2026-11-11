@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AquaMega | Water Refilling Station Ordering &amp; Delivery (Demo)</title>
+  <meta name="description" content="Demo web app for a water refilling station: customer ordering, rider dispatch with live route map, billing reports and an admin dashboard.">
+    <meta name="theme-color" content="#0c4a6e">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AquaMega | Water Refilling Station (Demo)">
+  <meta property="og:description" content="Order refills, track deliveries and manage dispatch, billing and reports.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%230284c7' d='M32 4C22 18 12 28 12 40a20 20 0 0040 0C52 28 42 18 32 4z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <a class="skip" href="#app">Skip to content</a>
+  <header>
+    <div class="brand">💧 AquaMega<small>Refilling Station System</small></div>
+    <div class="tabs" id="roles" role="group" aria-label="Switch view">
+      <button data-a="role" data-v="customer">Customer</button>
+      <button data-a="role" data-v="admin">🔒 Admin</button>
+    </div>
+    <div class="hact">
+      <button class="btn alt" id="acctBtn" data-a="acct">Sign in</button>
+      <button class="btn" id="cartBtn" data-a="cart">🛒 Basket <span id="cartN">0</span></button>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1"><p class="mu">Loading…</p></main>
+
+  <!-- Cart Drawer -->
+  <div id="drawer">
+    <aside role="dialog" aria-modal="true" aria-label="Your water order" tabindex="-1">
+      <div class="row sp" style="padding: 14px; background: var(--hd); color: #fff;">
+        <b>Your Water Order</b>
+        <button class="btn alt sm" data-a="closeCart" aria-label="Close basket">✕</button>
+      </div>
+      <div class="bd">
+        <div id="cartList"></div>
+        <div id="checkout" class="hide">
+          <h4 style="margin: 14px 0 0;">Delivery details</h4>
+          <label>Full name *</label>
+          <input id="cn" autocomplete="name" required aria-required="true" placeholder="Juan Dela Cruz">
+
+          <label>Mobile number *</label>
+          <input id="cp" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true" placeholder="0917 123 4567">
+
+          <label>Delivery address *</label>
+          <textarea id="ca" rows="2" required aria-required="true" autocomplete="street-address" placeholder="House/Unit #, Street, Barangay, City (separate with commas)"></textarea>
+          <button type="button" class="btn alt sm" data-a="pin" style="margin-top:6px">📍 Pin my exact location</button>
+          <span class="mu" id="pinInfo" role="status"> Helps the rider find you. Your typed address is still required.</span>
+
+          <div class="row">
+            <div style="flex: 1;">
+              <label>Date</label>
+              <input id="cd" type="date">
+            </div>
+            <div style="flex: 1;">
+              <label>Time slot</label>
+              <select id="ct">
+                <option>ASAP (Within 1 Hour)</option>
+                <option>Morning (9 AM - 12 PM)</option>
+                <option>Afternoon (1 PM - 5 PM)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="emptyBox" class="hide">
+            <label>Your empty gallons *</label>
+            <select id="ce">
+              <option value="home">Rider collects my empties at home (during delivery)</option>
+              <option value="store">I'll bring my empties to the store first, then deliver</option>
+            </select>
+            <p class="mu" id="emptyHint"></p>
+          </div>
+
+          <label>Payment</label>
+          <select id="cm">
+            <option value="COD">Cash on Delivery</option>
+            <option value="GCash">GCash</option>
+            <option value="Maya">Maya (PayMaya)</option>
+          </select>
+
+          <p class="mu hide" id="creditHint">Pay later: the amount is added to your account and you settle it with the station.</p>
+
+          <div id="payBox" class="hide card" style="margin-top: 8px; padding: 10px;">
+            <div id="payInfo" style="font-size: 13px;"></div>
+            <label>Payment reference number *</label>
+            <input id="cref" placeholder="Reference no. from your receipt">
+          </div>
+
+          <label>Notes</label>
+          <input id="cx" placeholder="e.g. Leave at gate">
+        </div>
+      </div>
+
+      <div class="ft hide" id="cartFt">
+        <div class="row sp mu"><span>Subtotal</span><span id="tSub"></span></div>
+        <div class="row sp mu"><span>Swap discount</span><span id="tDis"></span></div>
+        <div class="row sp mu"><span>Delivery <small>(free from ₱500)</small></span><span id="tFee"></span></div>
+        <div class="row sp" style="font-weight: 800; font-size: 16px; margin: 6px 0 10px;">
+          <span>Total</span>
+          <span id="tTot"></span>
+        </div>
+        <p class="mu" id="reviewLine" role="status" style="font-size:13px;margin:0 0 10px"></p>
+        <button class="btn" style="width: 100%;" data-a="place">Confirm & Place Order</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Product Modal -->
+  <dialog id="pinDlg" aria-labelledby="pinT">
+    <div style="width:min(560px,90vw)">
+      <h3 id="pinT" style="margin:0 0 4px">Pin your exact location</h3>
+      <p class="mu" id="pinHint" role="status" style="margin:0 0 8px">Loading map…</p>
+      <div id="pinMap" style="height:340px;border-radius:12px;background:var(--soft)"></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn alt sm" data-a="pinGps">📡 Use my GPS</button>
+        <button type="button" class="btn alt sm" data-a="pinFind">🔎 Find my typed address</button>
+        <span style="flex:1"></span>
+        <button type="button" class="btn alt" data-a="pinCancel">Cancel</button>
+        <button type="button" class="btn" data-a="pinDone">Use this spot</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="pm">
+    <form method="dialog" id="pf">
+      <h3 id="pmT" style="margin: 0 0 6px;">Product</h3>
+      <input type="hidden" id="pid">
+
+      <label>Title</label>
+      <input id="pt" required>
+
+      <div class="row">
+        <div style="flex: 1;">
+          <label>Category</label>
+          <select id="pc">
+            <option value="refill">Refill</option>
+            <option value="custom">Custom refill (per liter)</option>
+            <option value="ice">Ice block</option>
+            <option value="container">New container</option>
+            <option value="dispenser">Dispenser</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label>Price (₱)</label>
+          <input id="pp" type="number" min="0" step="0.01" required>
+        </div>
+      </div>
+
+      <label>Water types (comma separated)</label>
+      <input id="pw" placeholder="Purified, Alkaline, Mineral">
+
+      <div class="row">
+        <div style="flex: 1;">
+          <label>Swap discount (₱)</label>
+          <input id="ps" type="number" min="0" value="15">
+        </div>
+        <div style="flex: 1;">
+          <label>Stock</label>
+          <input id="pk" type="number" min="0" value="100">
+        </div>
+      </div>
+
+      <label>Description</label>
+      <textarea id="pd" rows="2"></textarea>
+
+      <div class="row" style="justify-content: flex-end; margin-top: 14px;">
+        <button type="button" class="btn alt" data-a="closePm">Cancel</button>
+        <button class="btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Chatbot Floating Widget -->
+  <button id="chatBtn" data-a="chat" title="Chat with AquaBot" aria-label="Open chat with AquaBot">💬</button>
+
+  <div id="chat">
+    <div class="row sp" style="padding: 12px; background: var(--hd); color: #fff;">
+      <b>💧 AquaBot</b>
+      <button class="btn alt sm" data-a="chat" aria-label="Close chat">✕</button>
+    </div>
+    <div id="chatBody" role="log" aria-live="polite" aria-label="Chat messages" style="flex: 1; overflow: auto; padding: 8px 12px;"></div>
+    <div class="row" style="padding: 4px 10px;">
+      <button class="pill" data-a="ask" data-v="Prices">Prices</button>
+      <button class="pill" data-a="ask" data-v="How does gallon swap work?">Gallon swap</button>
+      <button class="pill" data-a="ask" data-v="Payment options">Payment</button>
+      <button class="pill" data-a="ask" data-v="Delivery fee">Delivery</button>
+    </div>
+    <div class="row" style="padding: 10px; border-top: 1px solid var(--bd); flex-wrap: nowrap;">
+      <input id="chatIn" aria-label="Your message" placeholder="Ask, or type order no. AQ-123456">
+      <button class="btn" data-a="send">Send</button>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="reports.js"></script>
+  <script src="index.js"></script>
+  <script src="map.js"></script>
+  <script src="api.js"></script>
+</body>
+</html>

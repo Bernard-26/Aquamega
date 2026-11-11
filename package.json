@@ -1,0 +1,8 @@
+{
+  "name": "aquamega",
+  "version": "1.0.0",
+  "description": "AquaMega water refilling station: ordering, dispatch and admin dashboard",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": { "start": "node server.js" }
+}
